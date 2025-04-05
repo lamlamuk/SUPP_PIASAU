@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Member Search</title>
+  <style>
+    table, th, td {
+      border: 1px solid black;
+      border-collapse: collapse;
+      padding: 5px;
+    }
+    th {
+      background-color: #f0f0f0;
+    }
+    #status {
+      margin-top: 10px;
+      font-weight: bold;
+      color: darkred;
+    }
+  </style>
+</head>
+<body>
+  <h2>Search Member</h2>
+  <input type="text" id="name" placeholder="Enter Name (e.g. Leong*)">
+  <input type="text" id="newic" placeholder="Enter NewIC (e.g. 800112*)">
+  <button onclick="search()">Search</button>
+
+  <div id="status"></div>
+
+  <h3>Summary</h3>
+  <div id="summary">Loading summary...</div>
+
+  <h3>Search Results</h3>
+  <div id="results">Please enter a Name or IC to search.</div>
+
+  <script>
+    const baseURL = 'https://script.google.com/macros/s/AKfycbxSNILAAABdirutPIqaq9EmBgSl7mTrCIxZru8bEEiJyRY-wl3cYWlRvCvhKtivxIq6/exec'; // ✅ use your working URL here
+
+    async function fetchData(name = '', newic = '') {
+      try {
+        document.getElementById('status').innerText = 'Loading... Please wait.';
+
+        const url = `${baseURL}?name=${encodeURIComponent(name)}&newic=${encodeURIComponent(newic)}`;
+        const response = await fetch(url, { cache: 'no-store' });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const json = await response.json();
+
+        if (!json.data || !json.summary) {
+          throw new Error("Invalid response structure from Apps Script.");
+        }
+
+        document.getElementById('status').innerText = '';
+        return json;
+      } catch (error) {
+        console.error('Fetch error:', error);
+        document.getElementById('status').innerText = '❌ Could not connect to the server or invalid response.';
+        return null;
+      }
+    }
+
+    function displaySummary(summary) {
+      const html = `
+        <strong>SEX Count:</strong><br>
+        Male (M): ${summary.sexCounts.M} <br>
+        Female (F): ${summary.sexCounts.F} <br><br>
+
+        <strong>RACE Count:</strong><br>
+        Malay (M): ${summary.raceCounts.M} <br>
+        Chinese (C): ${summary.raceCounts.C} <br>
+        Iban (I): ${summary.raceCounts.I} <br>
+        Bidayuh (B): ${summary.raceCounts.B} <br>
+        Others (O): ${summary.raceCounts.O} <br><br>
+
+        <strong>AGE Groups:</strong><br>
+        Below 20: ${summary.ageGroups["<20"]} <br>
+        20–30: ${summary.ageGroups["20-30"]} <br>
+        30–40: ${summary.ageGroups["30-40"]} <br>
+        40–50: ${summary.ageGroups["40-50"]} <br>
+        50–60: ${summary.ageGroups["50-60"]} <br>
+        60–70: ${summary.ageGroups["60-70"]} <br>
+        70–80: ${summary.ageGroups["70-80"]} <br>
+        Above 80: ${summary.ageGroups[">80"]} <br>
+      `;
+      document.getElementById('summary').innerHTML = html;
+    }
+
+    function displayResults(data) {
+      if (data.length === 0) {
+        document.getElementById('results').innerHTML = '<em>No matching records found.</em>';
+        return;
+      }
+
+      let html = '<table><tr><th>N_MEM</th><th>NAME</th><th>NRIC</th><th>D_BIRTH</th><th>Age</th><th>SEX</th><th>RACE</th><th>H_ADD</th><th>NEWIC</th><th>Phone</th><th>HP</th><th>MEM_TYPE</th></tr>';
+      data.forEach(row => {
+        html += `<tr>
+          <td>${row["N_MEM"]}</td>
+          <td>${row["NAME"]}</td>
+          <td>${row["NRIC"]}</td>
+          <td>${row["D_BIRTH"]}</td>
+          <td>${row["Age"]}</td>
+          <td>${row["SEX"]}</td>
+          <td>${row["RACE"]}</td>
+          <td>${row["H_ADD"]}</td>
+          <td>${row["NEWIC"]}</td>
+          <td>${row["Phone"]}</td>
+          <td>${row["HP"]}</td>
+          <td>${row["MEM_TYPE"]}</td>
+        </tr>`;
+      });
+      html += '</table>';
+      document.getElementById('results').innerHTML = html;
+    }
+
+    async function search() {
+      const name = document.getElementById('name').value.trim();
+      const newic = document.getElementById('newic').value.trim();
+
+      const json = await fetchData(name, newic);
+      if (json) {
+        displayResults(json.data);
+        displaySummary(json.summary); // Also update summary
+      }
+    }
+
+    // Load summary on first page load
+    window.onload = async () => {
+      const json = await fetchData(); // No params
+      if (json) {
+        displaySummary(json.summary);
+      } else {
+        document.getElementById('summary').innerHTML = '<em>Could not load summary.</em>';
+      }
+    };
+  </script>
+</body>
+</html>
