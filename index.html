@@ -93,7 +93,7 @@
         return;
       }
 
-      let html = '<table><tr><th>N_MEM</th><th>NAME</th><th>NRIC</th><th>D_BIRTH</th><th>Age</th><th>SEX</th><th>RACE</th><th>H_ADD</th><th>NEWIC</th><th>Phone</th><th>HP</th><th>MEM_TYPE</th></tr>';
+      let html = '<table><tr><th>Member ID</th><th>Name</th><th>Old IC</th><th>Birth Day</th><th>Age</th><th>Gender</th><th>Race</th><th>Address</th><th>New IC</th><th>House Phone</th><th>Mobile</th><th>Member Type</th><th>Chinese Name</th><th>Polling Station</th></tr>';
       data.forEach(row => {
         html += `<tr>
           <td>${row["N_MEM"]}</td>
@@ -108,6 +108,8 @@
           <td>${row["Phone"]}</td>
           <td>${row["HP"]}</td>
           <td>${row["MEM_TYPE"]}</td>
+          <td>${row["CName"]}</td>
+          <td>${row["Polling_Station"]}</td>
         </tr>`;
       });
       html += '</table>';
