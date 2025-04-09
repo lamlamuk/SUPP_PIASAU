@@ -129,6 +129,29 @@
       }
     }
 
+    function clearSections() {
+      // Clear the specific sections and results
+      document.getElementById('sex').innerHTML = '';
+      document.getElementById('race').innerHTML = '';
+      document.getElementById('age').innerHTML = '';
+      document.getElementById('polling').innerHTML = '';
+      document.getElementById('results').innerHTML = ''; // Clear search results
+    }
+
+    async function search() {
+      // Clear all sections and results first
+      clearSections();
+
+      const name = document.getElementById('name').value.trim();
+      const newic = document.getElementById('newic').value.trim();
+      const json = await fetchData(name, newic);
+
+      if (json) {
+        displayResults(json.data);
+        globalSummary = json.summary;
+      }
+    }
+
     function showSection(section) {
       ['sex', 'race', 'age', 'polling'].forEach(id => {
         document.getElementById(id).style.display = 'none';
@@ -169,29 +192,28 @@
           `;
           break;
 
-       case 'polling':
-  const pollingData = globalSummary.pollingSummary || {};
-  const polling = pollingData.pollingCounts || {};
-  const stations = ['BAZAAR', 'BINTANG', 'KUBU', 'LUAK', 'LUTONG', 'MERBAU', 'MERPATI', 'TANJONG'];
+        case 'polling':
+          const pollingData = globalSummary.pollingSummary || {};
+          const polling = pollingData.pollingCounts || {};
+          const stations = ['BAZAAR', 'BINTANG', 'KUBU', 'LUAK', 'LUTONG', 'MERBAU', 'MERPATI', 'TANJONG'];
 
-  // Calculate Total N73 Piasau Polling Stations
-  const totalN73Piasau = stations.reduce((total, station) => total + (polling[station] || 0), 0);
+          // Calculate Total N73 Piasau Polling Stations
+          const totalN73Piasau = stations.reduce((total, station) => total + (polling[station] || 0), 0);
 
-  // Calculate Other DUN Polling Stations
-  const totalRecords = pollingData.totalRecords || 0;
-  const noRecord = polling["NO RECORD"] || 0;
-  const otherDunPolling = totalRecords - noRecord - totalN73Piasau;
+          // Calculate Other DUN Polling Stations
+          const totalRecords = pollingData.totalRecords || 0;
+          const noRecord = polling["NO RECORD"] || 0;
+          const otherDunPolling = totalRecords - noRecord - totalN73Piasau;
 
-  html = `
-    <h3>Polling Station Count</h3>
-    ${stations.map(s => `${s}: ${polling[s] || 0}`).join('<br>')}<br>
-    NO RECORD: ${noRecord}<br>
-    Other DUN Polling Stations: ${otherDunPolling}<br>
-    <strong>Total N73 Piasau Polling Stations:</strong> ${totalN73Piasau}<br>
-    <strong>Total Records:</strong> ${totalRecords}
-  `;
-  break;
-
+          html = `
+            <h3>Polling Station Count</h3>
+            ${stations.map(s => `${s}: ${polling[s] || 0}`).join('<br>')}<br>
+            NO RECORD: ${noRecord}<br>
+            Other DUN Polling Stations: ${otherDunPolling}<br>
+            <strong>Total N73 Piasau Polling Stations:</strong> ${totalN73Piasau}<br>
+            <strong>Total Records:</strong> ${totalRecords}
+          `;
+          break;
       }
 
       document.getElementById(section).innerHTML = html;
@@ -225,16 +247,6 @@
       });
       html += '</table>';
       document.getElementById('results').innerHTML = html;
-    }
-
-    async function search() {
-      const name = document.getElementById('name').value.trim();
-      const newic = document.getElementById('newic').value.trim();
-      const json = await fetchData(name, newic);
-      if (json) {
-        displayResults(json.data);
-        globalSummary = json.summary;
-      }
     }
 
     window.onload = async () => {
