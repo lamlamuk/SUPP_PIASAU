@@ -1,15 +1,71 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Member Search</title>
+  <title>Member Directory</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    table, th, td {
-      border: 1px solid black;
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f8f9fa;
+    }
+    header {
+      background-color: #343a40;
+      padding: 10px 20px;
+      color: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 1.5rem;
+    }
+    nav {
+      display: flex;
+      flex-direction: column;
+    }
+    .menu, .submenu {
+      display: flex;
+      gap: 15px;
+    }
+    .submenu {
+      margin-top: 5px;
+      font-size: 0.9em;
+    }
+    nav a {
+      color: white;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    nav a:hover {
+      text-decoration: underline;
+    }
+    .container {
+      padding: 20px;
+    }
+    input, button {
+      margin: 5px 0;
+      padding: 10px;
+      font-size: 1em;
+      width: 100%;
+      max-width: 300px;
+      box-sizing: border-box;
+    }
+    table {
+      width: 100%;
+      margin-top: 20px;
       border-collapse: collapse;
-      padding: 5px;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: left;
     }
     th {
-      background-color: #f0f0f0;
+      background-color: #e9ecef;
     }
     #status {
       margin-top: 10px;
@@ -19,38 +75,50 @@
   </style>
 </head>
 <body>
-  <h2>Search Member</h2>
-  <input type="text" id="name" placeholder="Enter Name (e.g. Leong*)">
-  <input type="text" id="newic" placeholder="Enter NewIC (e.g. 800112*)">
-  <button onclick="search()">Search</button>
+  <header>
+    <h1>Member Directory</h1>
+    <nav>
+      <div class="menu">
+        <a href="#home">Home</a>
+        <a href="#sex" onclick="showSection('sex')">Sex Count</a>
+        <a href="#race" onclick="showSection('race')">Race Count</a>
+        <a href="#age" onclick="showSection('age')">Age Groups</a>
+        <a href="#polling" onclick="showSection('polling')">Polling Station Count</a>
+      </div>
+    </nav>
+  </header>
 
-  <div id="status"></div>
+  <div class="container" id="home">
+    <h2>Search Member</h2>
+    <input type="text" id="name" placeholder="Enter Name (e.g. Leong*)">
+    <input type="text" id="newic" placeholder="Enter NewIC (e.g. 800112*)">
+    <button onclick="search()">Search</button>
+    <div id="status"></div>
+  </div>
 
-  <h3>Summary</h3>
-  <div id="summary">Loading summary...</div>
+  <div class="container" id="sex" style="display:none;"></div>
+  <div class="container" id="race" style="display:none;"></div>
+  <div class="container" id="age" style="display:none;"></div>
+  <div class="container" id="polling" style="display:none;"></div>
 
-  <h3>Search Results</h3>
-  <div id="results">Please enter a Name or IC to search.</div>
+  <div class="container">
+    <h3>Search Results</h3>
+    <div id="results">Please enter a Name or IC to search.</div>
+  </div>
 
   <script>
-    const baseURL = 'https://script.google.com/macros/s/AKfycbxSNILAAABdirutPIqaq9EmBgSl7mTrCIxZru8bEEiJyRY-wl3cYWlRvCvhKtivxIq6/exec'; // ✅ use your working URL here
+    const baseURL = 'https://script.google.com/macros/s/AKfycbxzJTFRCLDr7ySMuJr1O7YrbWF4S6zDNQnfKs_DG0F952plOTtgXgEmtf1nvNsf32DP/exec';
+    let globalSummary = null;
 
     async function fetchData(name = '', newic = '') {
       try {
         document.getElementById('status').innerText = 'Loading... Please wait.';
-
         const url = `${baseURL}?name=${encodeURIComponent(name)}&newic=${encodeURIComponent(newic)}`;
         const response = await fetch(url, { cache: 'no-store' });
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
         const json = await response.json();
-
-        if (!json.data || !json.summary) {
-          throw new Error("Invalid response structure from Apps Script.");
-        }
+        if (!json.data || !json.summary) throw new Error("Invalid response structure from Apps Script.");
 
         document.getElementById('status').innerText = '';
         return json;
@@ -61,30 +129,73 @@
       }
     }
 
-    function displaySummary(summary) {
-      const html = `
-        <strong>SEX Count:</strong><br>
-        Male (M): ${summary.sexCounts.M} <br>
-        Female (F): ${summary.sexCounts.F} <br><br>
+    function showSection(section) {
+      ['sex', 'race', 'age', 'polling'].forEach(id => {
+        document.getElementById(id).style.display = 'none';
+      });
 
-        <strong>RACE Count:</strong><br>
-        Malay (M): ${summary.raceCounts.M} <br>
-        Chinese (C): ${summary.raceCounts.C} <br>
-        Iban (I): ${summary.raceCounts.I} <br>
-        Bidayuh (B): ${summary.raceCounts.B} <br>
-        Others (O): ${summary.raceCounts.O} <br><br>
+      if (!globalSummary) return;
 
-        <strong>AGE Groups:</strong><br>
-        Below 20: ${summary.ageGroups["<20"]} <br>
-        20–30: ${summary.ageGroups["20-30"]} <br>
-        30–40: ${summary.ageGroups["30-40"]} <br>
-        40–50: ${summary.ageGroups["40-50"]} <br>
-        50–60: ${summary.ageGroups["50-60"]} <br>
-        60–70: ${summary.ageGroups["60-70"]} <br>
-        70–80: ${summary.ageGroups["70-80"]} <br>
-        Above 80: ${summary.ageGroups[">80"]} <br>
-      `;
-      document.getElementById('summary').innerHTML = html;
+      let html = '';
+      switch (section) {
+        case 'sex':
+          html = `
+            <h3>Sex Count</h3>
+            Male (M): ${globalSummary.sexCounts.M}<br>
+            Female (F): ${globalSummary.sexCounts.F}<br>
+          `;
+          break;
+        case 'race':
+          html = `
+            <h3>Race Count</h3>
+            Malay (M): ${globalSummary.raceCounts.M} <br>
+            Chinese (C): ${globalSummary.raceCounts.C} <br>
+            Iban (I): ${globalSummary.raceCounts.I} <br>
+            Bidayuh (B): ${globalSummary.raceCounts.B} <br>
+            Others (O): ${globalSummary.raceCounts.O} <br>
+          `;
+          break;
+        case 'age':
+          html = `
+            <h3>Age Groups</h3>
+            Below 20: ${globalSummary.ageGroups["<20"]} <br>
+            20–30: ${globalSummary.ageGroups["20-30"]} <br>
+            30–40: ${globalSummary.ageGroups["30-40"]} <br>
+            40–50: ${globalSummary.ageGroups["40-50"]} <br>
+            50–60: ${globalSummary.ageGroups["50-60"]} <br>
+            60–70: ${globalSummary.ageGroups["60-70"]} <br>
+            70–80: ${globalSummary.ageGroups["70-80"]} <br>
+            Above 80: ${globalSummary.ageGroups[">80"]} <br>
+          `;
+          break;
+
+       case 'polling':
+  const pollingData = globalSummary.pollingSummary || {};
+  const polling = pollingData.pollingCounts || {};
+  const stations = ['BAZAAR', 'BINTANG', 'KUBU', 'LUAK', 'LUTONG', 'MERBAU', 'MERPATI', 'TANJONG'];
+
+  // Calculate Total N73 Piasau Polling Stations
+  const totalN73Piasau = stations.reduce((total, station) => total + (polling[station] || 0), 0);
+
+  // Calculate Other DUN Polling Stations
+  const totalRecords = pollingData.totalRecords || 0;
+  const noRecord = polling["NO RECORD"] || 0;
+  const otherDunPolling = totalRecords - noRecord - totalN73Piasau;
+
+  html = `
+    <h3>Polling Station Count</h3>
+    ${stations.map(s => `${s}: ${polling[s] || 0}`).join('<br>')}<br>
+    NO RECORD: ${noRecord}<br>
+    Other DUN Polling Stations: ${otherDunPolling}<br>
+    <strong>Total N73 Piasau Polling Stations:</strong> ${totalN73Piasau}<br>
+    <strong>Total Records:</strong> ${totalRecords}
+  `;
+  break;
+
+      }
+
+      document.getElementById(section).innerHTML = html;
+      document.getElementById(section).style.display = 'block';
     }
 
     function displayResults(data) {
@@ -119,22 +230,16 @@
     async function search() {
       const name = document.getElementById('name').value.trim();
       const newic = document.getElementById('newic').value.trim();
-
       const json = await fetchData(name, newic);
       if (json) {
         displayResults(json.data);
-        displaySummary(json.summary); // Also update summary
+        globalSummary = json.summary;
       }
     }
 
-    // Load summary on first page load
     window.onload = async () => {
-      const json = await fetchData(); // No params
-      if (json) {
-        displaySummary(json.summary);
-      } else {
-        document.getElementById('summary').innerHTML = '<em>Could not load summary.</em>';
-      }
+      const json = await fetchData();
+      if (json) globalSummary = json.summary;
     };
   </script>
 </body>
