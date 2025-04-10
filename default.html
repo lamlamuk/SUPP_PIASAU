@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>会员目录</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f8f9fa;
+    }
+    header {
+      background-color: #343a40;
+      padding: 10px 20px;
+      color: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 1.5rem;
+    }
+    nav {
+      display: flex;
+      flex-direction: column;
+    }
+    .menu, .submenu {
+      display: flex;
+      gap: 15px;
+    }
+    .submenu {
+      margin-top: 5px;
+      font-size: 0.9em;
+    }
+    nav a {
+      color: white;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    nav a:hover {
+      text-decoration: underline;
+    }
+    .container {
+      padding: 20px;
+    }
+    input, button {
+      margin: 5px 0;
+      padding: 10px;
+      font-size: 1em;
+      width: 100%;
+      max-width: 300px;
+      box-sizing: border-box;
+    }
+    table {
+      width: 100%;
+      margin-top: 20px;
+      border-collapse: collapse;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: left;
+    }
+    th {
+      background-color: #e9ecef;
+    }
+    #status {
+      margin-top: 10px;
+      font-weight: bold;
+      color: darkred;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>会员目录</h1>
+    <nav>
+      <div class="menu">
+        <a href="https://lamlamuk.github.io/SUPP_PIASAU/default.html">ENGLISH</a>
+        <a href="#sex" onclick="showSection('sex')">性别分析</a>
+        <a href="#race" onclick="showSection('race')">种族分析</a>
+        <a href="#age" onclick="showSection('age')">年龄层分析</a>
+        <a href="#polling" onclick="showSection('polling')">投票站分析</a>
+      </div>
+    </nav>
+  </header>
+
+  <div class="container" id="home">
+    <h2>会员资料搜索</h2>
+    <input type="text" id="name" placeholder="请输入姓名 (e.g. Leong*)">
+    <input type="text" id="newic" placeholder="请输入新身份证 (e.g. 800112*)">
+    <button onclick="search()">搜索</button>
+    <div id="status"></div>
+  </div>
+
+  <div class="container" id="sex" style="display:none;"></div>
+  <div class="container" id="race" style="display:none;"></div>
+  <div class="container" id="age" style="display:none;"></div>
+  <div class="container" id="polling" style="display:none;"></div>
+
+  <div class="container">
+    <h3>搜索结果</h3>
+    <div id="results">搜索请输入姓名或新身份证号码.</div>
+  </div>
+
+  <script>
+    const baseURL = 'https://script.google.com/macros/s/AKfycbxzJTFRCLDr7ySMuJr1O7YrbWF4S6zDNQnfKs_DG0F952plOTtgXgEmtf1nvNsf32DP/exec';
+    let globalSummary = null;
+
+    async function fetchData(name = '', newic = '') {
+      try {
+        document.getElementById('status').innerText = '正在加載...請稍候.';
+        const url = `${baseURL}?name=${encodeURIComponent(name)}&newic=${encodeURIComponent(newic)}`;
+        const response = await fetch(url, { cache: 'no-store' });
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+        const json = await response.json();
+        if (!json.data || !json.summary) throw new Error("Invalid response structure from Apps Script.");
+
+        document.getElementById('status').innerText = '';
+        return json;
+      } catch (error) {
+        console.error('Fetch error:', error);
+        document.getElementById('status').innerText = '❌ Could not connect to the server or invalid response.';
+        return null;
+      }
+    }
+
+    function clearSections() {
+      // Clear the specific sections and results
+      document.getElementById('sex').innerHTML = '';
+      document.getElementById('race').innerHTML = '';
+      document.getElementById('age').innerHTML = '';
+      document.getElementById('polling').innerHTML = '';
+      document.getElementById('results').innerHTML = ''; // Clear search results
+    }
+
+    async function search() {
+      // Clear all sections and results first
+      clearSections();
+
+      const name = document.getElementById('name').value.trim();
+      const newic = document.getElementById('newic').value.trim();
+      const json = await fetchData(name, newic);
+
+      if (json) {
+        displayResults(json.data);
+        globalSummary = json.summary;
+      }
+    }
+
+    function showSection(section) {
+      ['sex', 'race', 'age', 'polling'].forEach(id => {
+        document.getElementById(id).style.display = 'none';
+      });
+
+      if (!globalSummary) return;
+
+      let html = '';
+      switch (section) {
+        case 'sex':
+          html = `
+            <h3>性别分析</h3>
+            男 (M): ${globalSummary.sexCounts.M}<br>
+            女 (F): ${globalSummary.sexCounts.F}<br>
+          `;
+          break;
+        case 'race':
+          html = `
+            <h3>种族分析</h3>
+            马来族 (M): ${globalSummary.raceCounts.M} <br>
+            华族 (C): ${globalSummary.raceCounts.C} <br>
+            伊班族 (I): ${globalSummary.raceCounts.I} <br>
+            比達友族 (B): ${globalSummary.raceCounts.B} <br>
+            其他族群 (O): ${globalSummary.raceCounts.O} <br>
+          `;
+          break;
+        case 'age':
+          html = `
+            <h3>年龄层分析</h3>
+            低于 20岁: ${globalSummary.ageGroups["<20"]} <br>
+            20岁–30岁: ${globalSummary.ageGroups["20-30"]} <br>
+            30岁–40岁: ${globalSummary.ageGroups["30-40"]} <br>
+            40岁–50岁: ${globalSummary.ageGroups["40-50"]} <br>
+            50岁–60岁: ${globalSummary.ageGroups["50-60"]} <br>
+            60岁–70岁: ${globalSummary.ageGroups["60-70"]} <br>
+            70岁–80岁: ${globalSummary.ageGroups["70-80"]} <br>
+            高于 80岁: ${globalSummary.ageGroups[">80"]} <br>
+          `;
+          break;
+
+        case 'polling':
+          const pollingData = globalSummary.pollingSummary || {};
+          const polling = pollingData.pollingCounts || {};
+          const stations = ['BAZAAR', 'BINTANG', 'KUBU', 'LUAK', 'LUTONG', 'MERBAU', 'MERPATI', 'TANJONG'];
+
+          // Calculate Total N73 Piasau Polling Stations
+          const totalN73Piasau = stations.reduce((total, station) => total + (polling[station] || 0), 0);
+
+          // Calculate Other DUN Polling Stations
+          const totalRecords = pollingData.totalRecords || 0;
+          const noRecord = polling["NO RECORD"] || 0;
+          const otherDunPolling = totalRecords - noRecord - totalN73Piasau;
+
+          html = `
+            <h3>投票站分析</h3>
+            ${stations.map(s => `${s}: ${polling[s] || 0}`).join('<br>')}<br>
+            没记录: ${noRecord}<br>
+            其它州议会投票站总数: ${otherDunPolling}<br>
+            <strong>N73卑尔骚会员投票站总数:</strong> ${totalN73Piasau}<br>
+            <strong>会员总人数:</strong> ${totalRecords}
+          `;
+          break;
+      }
+
+      document.getElementById(section).innerHTML = html;
+      document.getElementById(section).style.display = 'block';
+    }
+
+    function displayResults(data) {
+      if (data.length === 0) {
+        document.getElementById('results').innerHTML = '<em>未找到符合條件的記錄.</em>';
+        return;
+      }
+
+      let html = '<table><tr><th>会员号</th><th>名字</th><th>旧身份证</th><th>出生日期</th><th>年龄</th><th>性别</th><th>种族</th><th>地址</th><th>新身份证</th><th>家电话</th><th>手机号</th><th>会员分类</th><th>中文名</th><th>投票站</th></tr>';
+      data.forEach(row => {
+        html += `<tr>
+          <td>${row["N_MEM"]}</td>
+          <td>${row["NAME"]}</td>
+          <td>${row["NRIC"]}</td>
+          <td>${row["D_BIRTH"]}</td>
+          <td>${row["Age"]}</td>
+          <td>${row["SEX"]}</td>
+          <td>${row["RACE"]}</td>
+          <td>${row["H_ADD"]}</td>
+          <td>${row["NEWIC"]}</td>
+          <td>${row["Phone"]}</td>
+          <td>${row["HP"]}</td>
+          <td>${row["MEM_TYPE"]}</td>
+          <td>${row["CName"]}</td>
+          <td>${row["Polling_Station"]}</td>
+        </tr>`;
+      });
+      html += '</table>';
+      document.getElementById('results').innerHTML = html;
+    }
+
+    window.onload = async () => {
+      const json = await fetchData();
+      if (json) globalSummary = json.summary;
+    };
+  </script>
+</body>
+</html>
