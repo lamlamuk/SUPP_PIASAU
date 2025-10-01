@@ -195,7 +195,7 @@
         case 'polling':
           const pollingData = globalSummary.pollingSummary || {};
           const polling = pollingData.pollingCounts || {};
-          const stations = ['BAZAAR', 'BINTANG', 'KUBU', 'LUAK', 'LUTONG', 'MERBAU', 'MERPATI', 'TANJONG'];
+          const stations = ['BAZAAR', 'BINTANG', 'KUBU', 'LUAK', 'LUTONG', 'MERBAU', 'MERPATI', 'TANJONG',, 'PERMAISURI'];
 
           // Calculate Total N73 Piasau Polling Stations
           const totalN73Piasau = stations.reduce((total, station) => total + (polling[station] || 0), 0);
@@ -256,3 +256,4 @@
   </script>
 </body>
 </html>
+
