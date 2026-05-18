@@ -39,6 +39,7 @@
       color: white;
       text-decoration: none;
       font-weight: bold;
+      cursor: pointer;
     }
     nav a:hover {
       text-decoration: underline;
@@ -72,6 +73,53 @@
       font-weight: bold;
       color: darkred;
     }
+
+    /* New Tab Interface Styles */
+    .tabs-wrapper {
+      margin-top: 15px;
+    }
+    .tabs-header {
+      display: flex;
+      gap: 10px;
+      border-bottom: 2px solid #ddd;
+      padding-bottom: 8px;
+      margin-bottom: 15px;
+    }
+    .tab-btn {
+      padding: 8px 16px;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      border: none;
+      background: #e0e0e0;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: auto;
+    }
+    .tab-btn.active {
+      background-color: #007bff;
+      color: white;
+    }
+    .tab-badge {
+      background-color: rgba(0,0,0,0.1);
+      padding: 2px 6px;
+      border-radius: 10px;
+      font-size: 11px;
+    }
+    .tab-btn.active .tab-badge {
+      background-color: rgba(255,255,255,0.25);
+      color: white;
+    }
+    .roster-table td {
+      width: 20%;
+      font-weight: bold;
+      background-color: #fff;
+    }
+    .roster-table tr:nth-child(even) td {
+      background-color: #f1f3f5;
+    }
   </style>
 </head>
 <body>
@@ -84,10 +132,12 @@
         <a href="#race" onclick="showSection('race')">Race Count</a>
         <a href="#age" onclick="showSection('age')">Age Groups</a>
         <a href="#polling" onclick="showSection('polling')">Polling Station Count</a>
+        <a href="#membernonvoter" onclick="showSection('membernonvoter')">Non N73 Voters</a>
       </div>
     </nav>
   </header>
 
+  <!-- Main Search Panel Component -->
   <div class="container" id="home">
     <h2>Search Member</h2>
     <input type="text" id="name" placeholder="Enter Name (e.g. Leong*)">
@@ -96,20 +146,48 @@
     <div id="status"></div>
   </div>
 
+  <!-- Summary Sections -->
   <div class="container" id="sex" style="display:none;"></div>
   <div class="container" id="race" style="display:none;"></div>
   <div class="container" id="age" style="display:none;"></div>
   <div class="container" id="polling" style="display:none;"></div>
 
-  <div class="container">
+  <!-- Integrated New Layout Section -->
+  <div class="container" id="membernonvoter" style="display:none;">
+    <h3>Non N73 Voters Sections</h3>
+    <div class="tabs-wrapper">
+      <div class="tabs-header">
+        <button class="tab-btn active" onclick="switchRosterTab(this, 'branch-piasau-add')">
+          Main Branch <span id="badge-branch" class="tab-badge">...</span>
+        </button>
+        <button class="tab-btn" onclick="switchRosterTab(this, 'women-piasau-add')">
+          Women Section <span id="badge-women" class="tab-badge">...</span>
+        </button>
+        <button class="tab-btn" onclick="switchRosterTab(this, 'youth-piasau-add')">
+          Youth Section <span id="badge-youth" class="tab-badge">...</span>
+        </button>
+      </div>
+      <div id="roster-status" style="font-style: italic; color: #666; margin-bottom: 10px;"></div>
+      <table id="rosterNamesTable" class="roster-table"></table>
+    </div>
+  </div>
+
+  <!-- Main Results Block -->
+  <div class="container" id="search-results-wrapper">
     <h3>Search Results</h3>
     <div id="results">Please enter a Name or IC to search.</div>
   </div>
 
   <script>
+    // Original Directory API Configuration
     const baseURL = 'https://script.google.com/macros/s/AKfycbxzJTFRCLDr7ySMuJr1O7YrbWF4S6zDNQnfKs_DG0F952plOTtgXgEmtf1nvNsf32DP/exec';
+    
+    // Paste the Web App URL from your NEW Apps Script Project below
+    const nonVoterURL = 'https://script.google.com/macros/s/AKfycbz_Pel3Fdv1M8YgQ0h0lcOQggzjz4MBdirKYSNTSqu8UXOB6Vk1C58vqrM5bIO96vk/exec';
+    
     let globalSummary = null;
 
+    // --- Original API Logic ---
     async function fetchData(name = '', newic = '') {
       try {
         document.getElementById('status').innerText = 'Loading... Please wait.';
@@ -130,18 +208,19 @@
     }
 
     function clearSections() {
-      // Clear the specific sections and results
       document.getElementById('sex').innerHTML = '';
       document.getElementById('race').innerHTML = '';
       document.getElementById('age').innerHTML = '';
       document.getElementById('polling').innerHTML = '';
-      document.getElementById('results').innerHTML = ''; // Clear search results
+      document.getElementById('results').innerHTML = '';
     }
 
     async function search() {
-      // Clear all sections and results first
+      // Return UI focus to standard search results
+      document.getElementById('membernonvoter').style.display = 'none';
+      document.getElementById('search-results-wrapper').style.display = 'block';
+      
       clearSections();
-
       const name = document.getElementById('name').value.trim();
       const newic = document.getElementById('newic').value.trim();
       const json = await fetchData(name, newic);
@@ -153,66 +232,50 @@
     }
 
     function showSection(section) {
-      ['sex', 'race', 'age', 'polling'].forEach(id => {
+      // Hide all containers including the new non-voters container
+      ['sex', 'race', 'age', 'polling', 'membernonvoter'].forEach(id => {
         document.getElementById(id).style.display = 'none';
       });
+      
+      // Ensure search elements remain visible for regular sections
+      document.getElementById('home').style.display = 'block';
+      document.getElementById('search-results-wrapper').style.display = 'block';
+
+      // Special Interception for Non N73 Voters UI
+      if (section === 'membernonvoter') {
+        document.getElementById('home').style.display = 'none'; // Hide search bar
+        document.getElementById('search-results-wrapper').style.display = 'none'; // Hide result footer
+        document.getElementById('membernonvoter').style.display = 'block';
+        
+        // Populate layout defaults on first click
+        switchRosterTab(document.querySelector('.tab-btn.active'), 'branch-piasau-add');
+        loadAllRosterCounts();
+        return;
+      }
 
       if (!globalSummary) return;
 
       let html = '';
       switch (section) {
         case 'sex':
-          html = `
-            <h3>Sex Count</h3>
-            Male (M): ${globalSummary.sexCounts.M}<br>
-            Female (F): ${globalSummary.sexCounts.F}<br>
-          `;
+          html = `<h3>Sex Count</h3>Male (M): ${globalSummary.sexCounts.M}<br>Female (F): ${globalSummary.sexCounts.F}<br>`;
           break;
         case 'race':
-          html = `
-            <h3>Race Count</h3>
-            Malay (M): ${globalSummary.raceCounts.M} <br>
-            Chinese (C): ${globalSummary.raceCounts.C} <br>
-            Iban (I): ${globalSummary.raceCounts.I} <br>
-            Bidayuh (B): ${globalSummary.raceCounts.B} <br>
-            Others (O): ${globalSummary.raceCounts.O} <br>
-          `;
+          html = `<h3>Race Count</h3>Malay (M): ${globalSummary.raceCounts.M} <br>Chinese (C): ${globalSummary.raceCounts.C} <br>Iban (I): ${globalSummary.raceCounts.I} <br>Bidayuh (B): ${globalSummary.raceCounts.B} <br>Others (O): ${globalSummary.raceCounts.O} <br>`;
           break;
         case 'age':
-          html = `
-            <h3>Age Groups</h3>
-            Below 20: ${globalSummary.ageGroups["<20"]} <br>
-            20–30: ${globalSummary.ageGroups["20-30"]} <br>
-            30–40: ${globalSummary.ageGroups["30-40"]} <br>
-            40–50: ${globalSummary.ageGroups["40-50"]} <br>
-            50–60: ${globalSummary.ageGroups["50-60"]} <br>
-            60–70: ${globalSummary.ageGroups["60-70"]} <br>
-            70–80: ${globalSummary.ageGroups["70-80"]} <br>
-            Above 80: ${globalSummary.ageGroups[">80"]} <br>
-          `;
+          html = `<h3>Age Groups</h3>Below 20: ${globalSummary.ageGroups["<20"]} <br>20–30: ${globalSummary.ageGroups["20-30"]} <br>30–40: ${globalSummary.ageGroups["30-40"]} <br>40–50: ${globalSummary.ageGroups["40-50"]} <br>50–60: ${globalSummary.ageGroups["50-60"]} <br>60–70: ${globalSummary.ageGroups["60-70"]} <br>70–80: ${globalSummary.ageGroups["70-80"]} <br>Above 80: ${globalSummary.ageGroups[">80"]} <br>`;
           break;
-
         case 'polling':
           const pollingData = globalSummary.pollingSummary || {};
           const polling = pollingData.pollingCounts || {};
           const stations = ['BAZAAR', 'BINTANG', 'KUBU', 'LUAK', 'LUTONG', 'MERBAU', 'MERPATI', 'TANJONG', 'PERMAISURI'];
-
-          // Calculate Total N73 Piasau Polling Stations
           const totalN73Piasau = stations.reduce((total, station) => total + (polling[station] || 0), 0);
-
-          // Calculate Other DUN Polling Stations
           const totalRecords = pollingData.totalRecords || 0;
           const noRecord = polling["NO RECORD"] || 0;
           const otherDunPolling = totalRecords - noRecord - totalN73Piasau;
 
-          html = `
-            <h3>Polling Station Count</h3>
-            ${stations.map(s => `${s}: ${polling[s] || 0}`).join('<br>')}<br>
-            NO RECORD: ${noRecord}<br>
-            Other DUN Polling Stations: ${otherDunPolling}<br>
-            <strong>Total N73 Piasau Polling Stations:</strong> ${totalN73Piasau}<br>
-            <strong>Total Records:</strong> ${totalRecords}
-          `;
+          html = `<h3>Polling Station Count</h3>${stations.map(s => `${s}: ${polling[s] || 0}`).join('<br>')}<br>NO RECORD: ${noRecord}<br>Other DUN Polling Stations: ${otherDunPolling}<br><strong>Total N73 Piasau Polling Stations:</strong> ${totalN73Piasau}<br><strong>Total Records:</strong> ${totalRecords}`;
           break;
       }
 
@@ -225,28 +288,76 @@
         document.getElementById('results').innerHTML = '<em>No matching records found.</em>';
         return;
       }
-
       let html = '<table><tr><th>Member ID</th><th>Name</th><th>Old IC</th><th>Birth Day</th><th>Age</th><th>Gender</th><th>Race</th><th>Address</th><th>New IC</th><th>House Phone</th><th>Mobile</th><th>Member Type</th><th>Chinese Name</th><th>Polling Station</th></tr>';
       data.forEach(row => {
-        html += `<tr>
-          <td>${row["N_MEM"]}</td>
-          <td>${row["NAME"]}</td>
-          <td>${row["NRIC"]}</td>
-          <td>${row["D_BIRTH"]}</td>
-          <td>${row["Age"]}</td>
-          <td>${row["SEX"]}</td>
-          <td>${row["RACE"]}</td>
-          <td>${row["H_ADD"]}</td>
-          <td>${row["NEWIC"]}</td>
-          <td>${row["Phone"]}</td>
-          <td>${row["HP"]}</td>
-          <td>${row["MEM_TYPE"]}</td>
-          <td>${row["CName"]}</td>
-          <td>${row["Polling_Station"]}</td>
-        </tr>`;
+        html += `<tr><td>${row["N_MEM"]}</td><td>${row["NAME"]}</td><td>${row["NRIC"]}</td><td>${row["D_BIRTH"]}</td><td>${row["Age"]}</td><td>${row["SEX"]}</td><td>${row["RACE"]}</td><td>${row["H_ADD"]}</td><td>${row["NEWIC"]}</td><td>${row["Phone"]}</td><td>${row["HP"]}</td><td>${row["MEM_TYPE"]}</td><td>${row["CName"]}</td><td>${row["Polling_Station"]}</td></tr>`;
       });
       html += '</table>';
       document.getElementById('results').innerHTML = html;
+    }
+
+
+    // --- New Integrated Roster Client Pipeline ---
+    
+    // Fetch total summary numbers from the new app script API endpoint via JSONP/GET parameters
+    async function loadAllRosterCounts() {
+      try {
+        const response = await fetch(`${nonVoterURL}?action=getAllCounts`);
+        const countsObj = await response.json();
+        document.getElementById('badge-branch').innerText = countsObj['branch-piasau-add'] ?? 0;
+        document.getElementById('badge-women').innerText = countsObj['women-piasau-add'] ?? 0;
+        document.getElementById('badge-youth').innerText = countsObj['youth-piasau-add'] ?? 0;
+      } catch (err) {
+        console.error("Failed fetching badges counts:", err);
+      }
+    }
+
+    function switchRosterTab(button, sheetName) {
+      const buttons = document.getElementsByClassName('tab-btn');
+      for (let i = 0; i < buttons.length; i++) {
+        buttons[i].classList.remove('active');
+      }
+      button.classList.add('active');
+      fetchRosterData(sheetName);
+    }
+
+    async function fetchRosterData(sheetName) {
+      const table = document.getElementById('rosterNamesTable');
+      const status = document.getElementById('roster-status');
+      
+      table.innerHTML = "";
+      status.style.display = 'block';
+      status.innerText = `Loading names from ${sheetName}...`;
+
+      try {
+        const response = await fetch(`${nonVoterURL}?action=getFilteredNames&sheetName=${encodeURIComponent(sheetName)}`);
+        const namesArray = await response.json();
+        
+        if (!namesArray || namesArray.length === 0 || namesArray[0].toString().startsWith("Error")) {
+          status.innerText = namesArray[0] || "No matching rows found with 'yes' criteria.";
+          return;
+        }
+
+        status.style.display = 'none';
+        let html = '';
+        
+        for (let i = 0; i < namesArray.length; i++) {
+          if (i % 5 === 0) html += '<tr>';
+          html += `<td>${namesArray[i]}</td>`;
+          
+          if ((i + 1) % 5 === 0 || i === namesArray.length - 1) {
+            let remaining = 4 - (i % 5);
+            for (let j = 0; j < remaining; j++) {
+              html += '<td style="background:#fafafa;"></td>';
+            }
+            html += '</tr>';
+          }
+        }
+        table.innerHTML = html;
+      } catch (err) {
+        status.innerText = "Error pulling active roster details from spreadsheet container.";
+        console.error(err);
+      }
     }
 
     window.onload = async () => {
@@ -256,5 +367,3 @@
   </script>
 </body>
 </html>
-
-
